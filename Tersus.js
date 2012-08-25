@@ -9,6 +9,16 @@ function onLoad(){
 
 }
 
+var APP_SEPARATOR = "/t/";
+
+function fetchAppName(){
+
+    var sepIndex = document.URL.lastIndexOf(APP_SEPARATOR);
+    var choopedURL = document.URL.substr(sepIndex + APP_SEPARATOR.length);
+    var nextSlash = choopedURL.indexOf("/");
+    document.tersus.application = choopedURL.substr(0,nextSlash);
+}
+
 //******************************
 //Messaging
 //******************************
@@ -68,6 +78,7 @@ document.tersus.mkRequestWithCallback = function(url,method,callback,async){
 document.tersus.initMessaging = function(){
 
     fetchAccessKey();
+    fetchAppName();
 
     msgRequest = document.tersus.mkRequestWithCallback(document.tersus.makeMsgUrl(),REQUEST_METHODS.GET,document.tersus.messageHandler,true);
     msgRequest.send(null);
