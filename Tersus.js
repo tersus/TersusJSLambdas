@@ -103,3 +103,47 @@ function registerDefaultCallback(fun){
 
     return false;
 }
+
+// ****************************************
+//  FILES
+// ****************************************
+document.tersus = new Object();
+
+document.tersus.writeFile = function (path,text){
+    if (typeof document.tersus.username === 'undefined')
+        fetchUser();
+    if (typeof document.tersus.access_key === 'undefined')
+        fetchAccessKey();
+
+    $.post('/file/write/'+tersus.user.username+'/'+document.tersus.access_key+""+path, function(data) {
+        alert("File written with result...: "+data)
+    });
+}
+
+var fetchUser = function(){
+    getJSONSync('/api/user', function(user){
+        document.tersus.user = user;
+    });
+}
+
+ /* Fetchs the access key from the URL. If you want to get
+  * an access key, make a request to /api/access_key/${your app key}
+  * this is meant to be run in the browser served by a tersus instance.
+  */ 
+function fetchAccessKey(){
+    var lastSlash = document.URL.lastIndexOf("/");
+    document.tersus.access_key = document.URL.substr(lastSlash+1);
+}
+
+function getJSONSync(url_,success_){
+    $.ajax({
+        url: url_,
+        dataType: 'json',
+        async: false,
+        success: success_
+    });
+}
+
+tersus = document.tersus
+
+
