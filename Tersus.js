@@ -3,17 +3,15 @@
 //javascript application to aviod the hassle of dealing
 //with network manually.
 
+document.tersus = new Object();
+
 function onLoad(){
 
 }
 
-//Get the appkey of the current application
-//from the URL
-function getAppKey(){
-
-    chunks = window.location.pathname.split("/");
-    return chunks[chunks.length - 1];
-}
+//******************************
+//Messaging
+//******************************
 
 //Function that is called by default when a message
 //is received. The default action is ignoring the
@@ -23,41 +21,61 @@ function defaultCallback(msg){
 }
 
 //List of all callback functions
-var REGISTERED_CALLBACKS = [];
+document.tersus.REGISTERED_CALLBACKS = [];
 
 //The function to be executed when a
 //message dosen't match any callback
 //function
-var DEFAULT_CALLBACK = defaultCallback;
+document.tersus.DEFAULT_CALLBACK = defaultCallback;
 
 //Response obtained when a invalid app
 //key is used to get messages
-var INVALID_KEY = "EInvalidAppKey"
+document.tersus.INVALID_KEY = "EInvalidAppKey"
 
 //URL of the messaging receiving service
-var MSG_URL = "/service/message/receive"
+document.tersus.MSG_URL = "/service/message/receive"
 
 //Appkey url parameter
-var APPKEY_ARG = "appkey"
+document.tersus.APPKEY_ARG = "appkey"
+
+//Url to deliver messages
+document.tersus.SEND_MSG_URL = "/service/message/send";
+
+document.tersus.MSG_RESULT = {'Delivered':'Delivered', 'ENoAppInstance':'ENoAppInstance','EInvalidAppKey':'EInvalidAppKey','EBufferFull':'EBufferFull','EInvalidHashCode':'EInvalidHashCode','InvalidMsgFormat':'InvalidMsgFormat'};
 
 //Creates a url to request a message
-function makeMsgUrl(){
+document.tersus.makeMsgUrl = function(){
 
-    return MSG_URL + "?" + APPKEY_ARG + "=" + getAppKey();    
+    return document.tersus.MSG_URL + "?" + document.tersus.APPKEY_ARG + "=" + document.tersus.access_key;
+}
+
+document.tersus.sendMsgUrl = function(){
+
+    return document.tersus.SEND_MSG_URL;
+}
+
+var REQUEST_METHODS = {'GET':'GET','POST':'POST'};
+
+document.tersus.mkRequestWithCallback = function(url,method,callback,async){
+
+    msgRequest = new XMLHttpRequest();
+    msgRequest.open(method,url);
+    msgRequest.onreadystatechange = function(){callback(msgRequest)};
+    return msgRequest;
 }
 
 //Begin listening to messages, handle them as they arrive
-function initMessaging(){
+document.tersus.initMessaging = function(){
 
-    msgRequest = new XMLHttpRequest();
-    msgRequest.open("GET",makeMsgUrl());
-    msgRequest.onreadystatechange = function(){messageHandler(msgRequest)};
+    fetchAccessKey();
+
+    msgRequest = document.tersus.mkRequestWithCallback(document.tersus.makeMsgUrl(),REQUEST_METHODS.GET,document.tersus.messageHandler,true);
     msgRequest.send(null);
 }
 
 //Handle messages, dispatch the message to the appropiate
 //callback function.
-function messageHandler(request){
+document.tersus.messageHandler = function(request){
 
 
     if(request.readyState == 4 && request.status == 200){
@@ -65,49 +83,105 @@ function messageHandler(request){
 
 	for(i=0;i<messages.length;i++){
 
-	    if(REGISTERED_CALLBACKS[messages[i].userSender]){
+	    if(document.tersus.REGISTERED_CALLBACKS[messages[i].userSender]){
 
-		REGISTERED_CALLBACKS[messages[i].userSender](messages[i]);
+		document.tersus.REGISTERED_CALLBACKS[messages[i].userSender](messages[i]);
 	    }else
-		DEFAULT_CALLBACK(messages[i]);
+		document.tersus.DEFAULT_CALLBACK(messages[i]);
 	}
 
-	initMessaging();
+	document.tersus.initMessaging();
     }
 }
 
 //Register callback functions by user
 //Return true on successful callback registration
 //and return false if the callback cannot be registered
-function registerCallback(user,fun){
+document.tersus.registerCallback = function(user,fun){
 
     if(fun instanceof Function){
-	REGISTERED_CALLBACKS[user] = fun;
+	document.tersus.REGISTERED_CALLBACKS[user] = fun;
 	return true;
     }
     
     return false;
 }
 
-function unregisterCallback(user){
+document.tersus.unregisterCallback = function(user){
 
-    REGISTERED_CALLBACKS[user] = undefined;
+    document.tersus.REGISTERED_CALLBACKS[user] = undefined;
 }
 
-function registerDefaultCallback(fun){
+document.tersus.registerDefaultCallback = function(fun){
 
     if(fun instanceof Function){
-	DEFAULT_CALLBACK = fun;
+	document.tersus.DEFAULT_CALLBACK = fun;
 	return true;
     }
 
     return false;
 }
 
+document.tersus.makeMessages = function(users,toApp,message){
+
+    msgs = [];
+
+    for(i=0;i<users.length;i++){
+
+	msgs.push(document.tersus.makeMessage(users[i],toApp,message));
+    }
+
+    return msgs;
+
+}
+
+//Create a AuthMessaging for message delivery
+document.tersus.makeMessage = function(user,toApp,message){
+    
+    msg = new Object();
+    msg.senderAppKey = document.tersus.access_key;
+    msg.userReceiver = user;
+    msg.appReceiver = toApp;
+    msg.content = message;
+    return msg;
+}
+
+var MSGS_ARG = 'messages';
+
+document.tersus.sendMessageAsync = function(users,toApp,message,callback){
+
+    msgRequest = document.tersus.mkRequestWithCallback(document.tersus.SEND_MSG_URL,REQUEST_METHODS.POST,document.tersus.sendCallbackWrapper(callback),true);
+
+    msgs = document.tersus.makeMessages(users,toApp,message);
+
+    msgRequest.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+
+    params = MSGS_ARG + '=' + JSON.stringify(msgs);
+    msgRequest.setRequestHeader("Content-length", params.length);
+    msgRequest.send(params);
+
+}
+
+document.tersus.sendCallbackWrapper = function(callback){
+
+    return function(request){
+
+	if(request.readyState == 4 && request.status == 200){
+
+	    result = eval(request.responseText);
+	    callback(result);
+	}
+    };
+}
+
+document.tersus.sendMessage = function(users,toApp,message){
+
+    
+}
+
 // ****************************************
 //  FILES
 // ****************************************
-document.tersus = new Object();
 
 document.tersus.writeFile = function (path,text){
     if (typeof document.tersus.username === 'undefined')
