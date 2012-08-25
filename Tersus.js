@@ -200,7 +200,7 @@ document.tersus.writeFile = function (path,text){
     if (typeof document.tersus.access_key === 'undefined')
         fetchAccessKey();
 
-    $.post('/file/write/'+tersus.user.username+'/'+document.tersus.access_key+""+path, function(data) {
+    $.post('/file/write/'+tersus.user.username+'/'+document.tersus.access_key+""+path, {content: text}, function(data) {
         alert("File written with result...: "+data)
     });
 }
