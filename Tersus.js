@@ -58,7 +58,7 @@ var REQUEST_METHODS = {'GET':'GET','POST':'POST'};
 
 document.tersus.mkRequestWithCallback = function(url,method,callback,async){
 
-    msgRequest = new XMLHttpRequest();
+    var msgRequest = new XMLHttpRequest();
     msgRequest.open(method,url);
     msgRequest.onreadystatechange = function(){callback(msgRequest)};
     return msgRequest;
@@ -150,14 +150,14 @@ var MSGS_ARG = 'messages';
 
 document.tersus.sendMessageAsync = function(users,toApp,message,callback){
 
-    msgRequest = document.tersus.mkRequestWithCallback(document.tersus.SEND_MSG_URL,REQUEST_METHODS.POST,document.tersus.sendCallbackWrapper(callback),true);
+    var msgRequest = document.tersus.mkRequestWithCallback(document.tersus.SEND_MSG_URL,REQUEST_METHODS.POST,document.tersus.sendCallbackWrapper(callback),true);
 
     msgs = document.tersus.makeMessages(users,toApp,message);
 
     msgRequest.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 
     params = MSGS_ARG + '=' + JSON.stringify(msgs);
-    msgRequest.setRequestHeader("Content-length", params.length);
+    //msgRequest.setRequestHeader("Content-length", params.length);
     msgRequest.send(params);
 
 }
