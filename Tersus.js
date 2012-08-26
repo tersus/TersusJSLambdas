@@ -197,15 +197,29 @@ document.tersus.sendMessage = function(users,toApp,message){
 //  FILES
 // ****************************************
 
-document.tersus.writeFile = function (path,text){
+document.tersus.writeFile = function (path,text,callback){
     if (typeof document.tersus.username === 'undefined')
         fetchUser();
     if (typeof document.tersus.access_key === 'undefined')
         fetchAccessKey();
 
-    $.post('/file/write/'+tersus.user.username+'/'+document.tersus.access_key+""+path, {content: text}, function(data) {
-        alert("File written with result...: "+data)
+    $.ajax({
+          url: '/file/'+tersus.user.username+'/'+document.tersus.access_key+""+path
+        , type: 'PUT'
+        , data: { 
+            content: text 
+        }
+        , success: callback
     });
+}
+
+document.tersus.getFile = function(path,callback){
+    if (typeof document.tersus.username === 'undefined')
+        fetchUser();
+    if (typeof document.tersus.access_key === 'undefined')
+        fetchAccessKey();
+
+    $.get('/file/'+tersus.user.username+'/'+document.tersus.access_key+""+path,callback);
 }
 
 var fetchUser = function(){
@@ -233,5 +247,4 @@ function getJSONSync(url_,success_){
 }
 
 tersus = document.tersus
-
 
