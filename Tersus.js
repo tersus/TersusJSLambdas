@@ -160,7 +160,10 @@ document.tersus.makeMessage = function(user,toApp,message){
 var MSGS_ARG = 'messages';
 
 document.tersus.sendMessageAsync = function(users,toApp,message,callback){
-
+    
+    if(users.length < 1)
+	return;
+    
     var msgRequest = document.tersus.mkRequestWithCallback(document.tersus.SEND_MSG_URL,REQUEST_METHODS.POST,document.tersus.sendCallbackWrapper(callback),true);
 
     msgs = document.tersus.makeMessages(users,toApp,message);
