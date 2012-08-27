@@ -51,7 +51,7 @@ document.tersus.APPKEY_ARG = "appkey"
 //Url to deliver messages
 document.tersus.SEND_MSG_URL = "/service/message/send";
 
-document.tersus.MSG_RESULT = {'Delivered':'Delivered', 'ENoAppInstance':'ENoAppInstance','EInvalidAppKey':'EInvalidAppKey','EBufferFull':'EBufferFull','EInvalidHashCode':'EInvalidHashCode','InvalidMsgFormat':'InvalidMsgFormat'};
+document.tersus.MSG_RESULT = {'Delivered':'Delivered', 'ENoAppInstance':'ENoAppInstance','EInvalidAppKey':'EInvalidAppKey','EBufferFull':'EBufferFull','EInvalidHashCode':'EInvalidHashCode','InvalidMsgFormat':'InvalidMsgFormat','MsgTimeout':'MsgTimeout'};
 
 //Creates a url to request a message
 document.tersus.makeMsgUrl = function(){
@@ -81,7 +81,14 @@ document.tersus.initMessaging = function(){
     fetchAppName();
 
     msgRequest = document.tersus.mkRequestWithCallback(document.tersus.makeMsgUrl(),REQUEST_METHODS.GET,document.tersus.messageHandler,true);
+    //msgRequest.timeout = setTimeout(function(){document.tersus.timeoutFunction(msgRequest)},30000);
     msgRequest.send(null);
+}
+
+document.tersus.timeoutFunction = function(request){
+
+    request.abort();
+    document.tersus.initMessaging();
 }
 
 //Handle messages, dispatch the message to the appropiate
@@ -90,6 +97,21 @@ document.tersus.messageHandler = function(request){
 
 
     if(request.readyState == 4 && request.status == 200){
+	clearTimeout(request.timeout);
+
+	result = eval(request.responseText);
+
+	if(result == document.tersus.MSG_RESULT.MsgTimeout){
+	    
+	    document.tersus.initMessaging();
+	    return;
+	}
+
+	if(result == document.tersus.MSG_RESULT.EInvalidAppKey){
+	    
+	    alert('The provided appkey is invalid.');
+	}
+
 	messages = eval(eval(request.responseText));
 
 	for(i=0;i<messages.length;i++){
