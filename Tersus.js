@@ -9,7 +9,7 @@ function onLoad(){
 
 }
 
-var APP_SEPARATOR = "/t/";
+var APP_SEPARATOR = "/r/";
 
 function fetchAppName(){
 
@@ -250,13 +250,16 @@ var fetchUser = function(){
     });
 }
 
- /* Fetchs the access key from the URL. If you want to get
-  * an access key, make a request to /api/access_key/${your app key}
-  * this is meant to be run in the browser served by a tersus instance.
-  */ 
+//The url argument to which the access key is referenced
+document.tersus.accessKeyArg = "accessKey";
+
+//Regular expression used to match the access key in the url
+document.tersus.accessKeyRegexp = new RegExp(document.tersus.accessKeyArg+"=[^&/]+","i");
+
+//Load the access key from the url
 function fetchAccessKey(){
-    var lastSlash = document.URL.lastIndexOf("/");
-    document.tersus.access_key = document.URL.substr(lastSlash+1);
+    var param = document.tersus.accessKeyRegexp.exec(window.location.toString())[0];
+    document.tersus.access_key = param.replace(document.tersus.accessKeyArg+"=","");
 }
 
 function getJSONSync(url_,success_){
