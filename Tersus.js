@@ -112,7 +112,7 @@ document.tersus.messageHandler = function(request){
 	    alert('The provided appkey is invalid.');
 	}
 
-	messages = eval(eval(request.responseText));
+	messages = eval(unescape(request.responseText));
 
 	for(i=0;i<messages.length;i++){
 
@@ -192,7 +192,7 @@ document.tersus.sendMessageAsync = function(users,toApp,message,callback){
 
     msgRequest.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 
-    params = MSGS_ARG + '=' + JSON.stringify(msgs);
+    params = MSGS_ARG + '=' + escape(JSON.stringify(msgs));
     //msgRequest.setRequestHeader("Content-length", params.length);
     msgRequest.send(params);
 
@@ -235,13 +235,24 @@ document.tersus.writeFile = function (path,text,callback){
     });
 }
 
-document.tersus.getFile = function(path,callback){
+var FILE_ERRORS = {'NOT_FOUND' : 'NOT_FOUND'};
+
+document.tersus.getFile = function(path,callback,optional){
     if (typeof document.tersus.username === 'undefined')
         fetchUser();
     if (typeof document.tersus.access_key === 'undefined')
         fetchAccessKey();
 
-    $.get('/file/'+tersus.user.username+'/'+document.tersus.access_key+""+path,callback);
+    var req = new Object();
+    req.async = false;
+    req.url = '/file/'+tersus.user.username+'/'+document.tersus.access_key+""+path;
+    req.type = 'GET';
+    req.success = function(data,status,jqXHR){callback(data);};
+
+    if(optional && optional.errorCallback)
+	req.error = function(e){optional.errorCallback(FILE_ERRORS.NOT_FOUND);};
+
+    $.ajax(req);
 }
 
 var fetchUser = function(){
