@@ -44,6 +44,7 @@ document.tersus.INVALID_KEY = "EInvalidAppKey"
 
 //URL of the messaging receiving service
 document.tersus.MSG_URL = "/service/message/receive"
+document.tersus.MSG_URL_EV = "/service/message/receiveEv"
 
 //Appkey url parameter
 document.tersus.APPKEY_ARG = "appkey"
@@ -58,6 +59,13 @@ document.tersus.makeMsgUrl = function(){
 
     return document.tersus.MSG_URL + "?" + document.tersus.APPKEY_ARG + "=" + document.tersus.access_key;
 }
+
+//Creates a url to request a message using Comet
+document.tersus.makeMsgUrlEv = function(){
+
+    return document.tersus.MSG_URL_EV + "?" + document.tersus.APPKEY_ARG + "=" + document.tersus.access_key;
+}
+
 
 document.tersus.sendMsgUrl = function(){
 
@@ -80,15 +88,39 @@ document.tersus.initMessaging = function(){
     fetchAccessKey();
     fetchAppName();
 
-    msgRequest = document.tersus.mkRequestWithCallback(document.tersus.makeMsgUrl(),REQUEST_METHODS.GET,document.tersus.messageHandler,true);
-    //msgRequest.timeout = setTimeout(function(){document.tersus.timeoutFunction(msgRequest)},30000);
-    msgRequest.send(null);
+    //Check if Event Sources are supported in the browser and use them if so
+    if(window.EventSource){
+	document.tersus.eventSource = new EventSource(document.tersus.makeMsgUrlEv());
+	document.tersus.eventSource.addEventListener('message',document.tersus.eventSourceMessageHandler,false);
+    }else{
+	msgRequest = document.tersus.mkRequestWithCallback(document.tersus.makeMsgUrl(),REQUEST_METHODS.GET,document.tersus.messageHandler,true);
+	msgRequest.send(null);
+    }
 }
 
 document.tersus.timeoutFunction = function(request){
 
     request.abort();
     document.tersus.initMessaging();
+}
+
+document.tersus.eventSourceMessageHandler = function(event){
+
+    document.tersus.dispatchMessages(event.data);
+}
+
+document.tersus.dispatchMessages = function(msgs){
+    
+    var messages = eval(unescape(msgs));
+
+    for(var i=0;i<messages.length;i++){
+
+	if(document.tersus.REGISTERED_CALLBACKS[messages[i].userSender]){
+
+	    document.tersus.REGISTERED_CALLBACKS[messages[i].userSender](messages[i]);
+	}else
+	    document.tersus.DEFAULT_CALLBACK(messages[i]);
+    }
 }
 
 //Handle messages, dispatch the message to the appropiate
@@ -112,17 +144,8 @@ document.tersus.messageHandler = function(request){
 	    alert('The provided appkey is invalid.');
 	}
 
-	messages = eval(unescape(request.responseText));
-
-	for(i=0;i<messages.length;i++){
-
-	    if(document.tersus.REGISTERED_CALLBACKS[messages[i].userSender]){
-
-		document.tersus.REGISTERED_CALLBACKS[messages[i].userSender](messages[i]);
-	    }else
-		document.tersus.DEFAULT_CALLBACK(messages[i]);
-	}
-
+	document.tersus.dispatchMessages(request.responseText);
+	
 	document.tersus.initMessaging();
     }
 }
