@@ -44,6 +44,7 @@ document.tersus.INVALID_KEY = "EInvalidAppKey"
 
 //URL of the messaging receiving service
 document.tersus.MSG_URL = "/service/message/receive"
+document.tersus.MSG_URL_EV = "/service/message/receiveEv"
 
 //Appkey url parameter
 document.tersus.APPKEY_ARG = "appkey"
@@ -58,6 +59,13 @@ document.tersus.makeMsgUrl = function(){
 
     return document.tersus.MSG_URL + "?" + document.tersus.APPKEY_ARG + "=" + document.tersus.access_key;
 }
+
+//Creates a url to request a message using Comet
+document.tersus.makeMsgUrlEv = function(){
+
+    return document.tersus.MSG_URL_EV + "?" + document.tersus.APPKEY_ARG + "=" + document.tersus.access_key;
+}
+
 
 document.tersus.sendMsgUrl = function(){
 
@@ -80,15 +88,39 @@ document.tersus.initMessaging = function(){
     fetchAccessKey();
     fetchAppName();
 
-    msgRequest = document.tersus.mkRequestWithCallback(document.tersus.makeMsgUrl(),REQUEST_METHODS.GET,document.tersus.messageHandler,true);
-    //msgRequest.timeout = setTimeout(function(){document.tersus.timeoutFunction(msgRequest)},30000);
-    msgRequest.send(null);
+    //Check if Event Sources are supported in the browser and use them if so
+    if(window.EventSource){
+	document.tersus.eventSource = new EventSource(document.tersus.makeMsgUrlEv());
+	document.tersus.eventSource.addEventListener('message',document.tersus.eventSourceMessageHandler,false);
+    }else{
+	msgRequest = document.tersus.mkRequestWithCallback(document.tersus.makeMsgUrl(),REQUEST_METHODS.GET,document.tersus.messageHandler,true);
+	msgRequest.send(null);
+    }
 }
 
 document.tersus.timeoutFunction = function(request){
 
     request.abort();
     document.tersus.initMessaging();
+}
+
+document.tersus.eventSourceMessageHandler = function(event){
+
+    document.tersus.dispatchMessages(event.data);
+}
+
+document.tersus.dispatchMessages = function(msgs){
+    
+    var messages = eval(unescape(msgs));
+
+    for(var i=0;i<messages.length;i++){
+
+	if(document.tersus.REGISTERED_CALLBACKS[messages[i].userSender]){
+
+	    document.tersus.REGISTERED_CALLBACKS[messages[i].userSender](messages[i]);
+	}else
+	    document.tersus.DEFAULT_CALLBACK(messages[i]);
+    }
 }
 
 //Handle messages, dispatch the message to the appropiate
@@ -112,17 +144,8 @@ document.tersus.messageHandler = function(request){
 	    alert('The provided appkey is invalid.');
 	}
 
-	messages = eval(eval(request.responseText));
-
-	for(i=0;i<messages.length;i++){
-
-	    if(document.tersus.REGISTERED_CALLBACKS[messages[i].userSender]){
-
-		document.tersus.REGISTERED_CALLBACKS[messages[i].userSender](messages[i]);
-	    }else
-		document.tersus.DEFAULT_CALLBACK(messages[i]);
-	}
-
+	document.tersus.dispatchMessages(request.responseText);
+	
 	document.tersus.initMessaging();
     }
 }
@@ -192,7 +215,7 @@ document.tersus.sendMessageAsync = function(users,toApp,message,callback){
 
     msgRequest.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 
-    params = MSGS_ARG + '=' + JSON.stringify(msgs);
+    params = MSGS_ARG + '=' + escape(JSON.stringify(msgs));
     //msgRequest.setRequestHeader("Content-length", params.length);
     msgRequest.send(params);
 
@@ -235,13 +258,24 @@ document.tersus.writeFile = function (path,text,callback){
     });
 }
 
-document.tersus.getFile = function(path,callback){
+var FILE_ERRORS = {'NOT_FOUND' : 'NOT_FOUND'};
+
+document.tersus.getFile = function(path,callback,optional){
     if (typeof document.tersus.username === 'undefined')
         fetchUser();
     if (typeof document.tersus.access_key === 'undefined')
         fetchAccessKey();
 
-    $.get('/file/'+tersus.user.username+'/'+document.tersus.access_key+""+path,callback);
+    var req = new Object();
+    req.async = false;
+    req.url = '/file/'+tersus.user.username+'/'+document.tersus.access_key+""+path;
+    req.type = 'GET';
+    req.success = function(data,status,jqXHR){callback(data);};
+
+    if(optional && optional.errorCallback)
+	req.error = function(e){optional.errorCallback(FILE_ERRORS.NOT_FOUND);};
+
+    $.ajax(req);
 }
 
 var fetchUser = function(){
@@ -253,8 +287,26 @@ var fetchUser = function(){
 //The url argument to which the access key is referenced
 document.tersus.accessKeyArg = "accessKey";
 
+//The url argument for the startup arguments
+document.tersus.argvArg = "argv";
+
 //Regular expression used to match the access key in the url
 document.tersus.accessKeyRegexp = new RegExp(document.tersus.accessKeyArg+"=[^&/]+","i");
+
+//Regular expression used to match the startup arguments in the url
+document.tersus.argvRegexp = new RegExp(document.tersus.argvArg+"=[^&]+","i");
+
+//Function used to retrieve the startup arguments sent to this application
+document.tersus.getArgv = function(){
+
+    var params = document.tersus.argvRegexp.exec(window.location.toString());
+    if(params && params.length > 0){
+	var argStr = params[0].replace(document.tersus.argvArg+"=","");
+	return decodeURI(argStr).split(" ");
+    }
+    
+    return [];
+}
 
 //Load the access key from the url
 function fetchAccessKey(){
