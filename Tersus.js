@@ -287,8 +287,26 @@ var fetchUser = function(){
 //The url argument to which the access key is referenced
 document.tersus.accessKeyArg = "accessKey";
 
+//The url argument for the startup arguments
+document.tersus.argvArg = "argv";
+
 //Regular expression used to match the access key in the url
 document.tersus.accessKeyRegexp = new RegExp(document.tersus.accessKeyArg+"=[^&/]+","i");
+
+//Regular expression used to match the startup arguments in the url
+document.tersus.argvRegexp = new RegExp(document.tersus.argvArg+"=[^&]+","i");
+
+//Function used to retrieve the startup arguments sent to this application
+document.tersus.getArgv = function(){
+
+    var params = document.tersus.argvRegexp.exec(window.location.toString());
+    if(params && params.length > 0){
+	var argStr = params[0].replace(document.tersus.argvArg+"=","");
+	return decodeURI(argStr).split(" ");
+    }
+    
+    return [];
+}
 
 //Load the access key from the url
 function fetchAccessKey(){
