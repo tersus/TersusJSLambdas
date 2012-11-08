@@ -249,7 +249,7 @@ document.tersus.writeFile = function (path,text,callback){
         fetchAccessKey();
 
     $.ajax({
-          url: '/file/'+tersus.user.username+'/'+document.tersus.access_key+""+path
+          url: '/file/'+tersus.user.username+'/'+path+"/?access_key="+document.tersus.access_key
         , type: 'PUT'
         , data: { 
             content: text 
@@ -268,7 +268,7 @@ document.tersus.getFile = function(path,callback,optional){
 
     var req = new Object();
     req.async = false;
-    req.url = '/file/'+tersus.user.username+'/'+document.tersus.access_key+""+path;
+    req.url = '/file/'+tersus.user.username+'/'+path+'?access_key='+document.tersus.access_key;
     req.type = 'GET';
     req.success = function(data,status,jqXHR){callback(data);};
 
@@ -308,10 +308,15 @@ document.tersus.getArgv = function(){
     return [];
 }
 
+var getURLParameter = function(name) {
+    return decodeURI(
+        (RegExp(name + '=' + '(.+?)(&|$)').exec(location.search)||[,null])[1]
+    );
+}
+
 //Load the access key from the url
 function fetchAccessKey(){
-    var param = document.tersus.accessKeyRegexp.exec(window.location.toString())[0];
-    document.tersus.access_key = param.replace(document.tersus.accessKeyArg+"=","");
+    document.tersus.access_key = getURLParameter("access_key");
 }
 
 function getJSONSync(url_,success_){
