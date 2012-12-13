@@ -296,8 +296,6 @@ document.tersus.addPermission = function (path,username,permissionType,callback)
         fetchUser();
     if (typeof document.tersus.access_key === 'undefined')
         fetchAccessKey();
-
-    if (permissionType != "READ" && permissionType != "WRITE" && permissionType != "")
         
     $.ajax({
         url: '/permission/file/'+permissionType.uri+'/'+username+'/'+path+"/?access_key="+document.tersus.access_key
