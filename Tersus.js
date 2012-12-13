@@ -284,8 +284,44 @@ var fetchUser = function(){
     });
 }
 
+/*
+ * Makes a PUT request to add a permission to a file
+ *
+ * `path` is a file path.
+ * `username` is the username that gets the permission type over `path`
+ * `permissionType` the type of permission, a member of tersus.permissions
+ */
+document.tersus.addPermission = function (path,username,permissionType,callback){
+    if (typeof document.tersus.username === 'undefined')
+        fetchUser();
+    if (typeof document.tersus.access_key === 'undefined')
+        fetchAccessKey();
+
+    if (permissionType != "READ" && permissionType != "WRITE" && permissionType != "")
+        
+    $.ajax({
+        url: '/permission/file/'+permissionType.uri+'/'+username+'/'+path+"/?access_key="+document.tersus.access_key
+        , type: 'PUT'        
+        , success: callback
+    });
+}
+
+// ****************************************
+//  SECTION: PERMISSIONS
+// ****************************************
+
+document.tersus.permissions = { 
+    read: {uri: 'READ'}, 
+    write: {uri: 'WRITE'}, 
+    share: {uri: 'SHARE'}    
+};
+
+// ****************************************
+//  SECTION: GLOBAL VARIABLES
+// ****************************************
+
 //The url argument to which the access key is referenced
-document.tersus.accessKeyArg = "accessKey";
+document.tersus.accessKeyArg = "access_key";
 
 //The url argument for the startup arguments
 document.tersus.argvArg = "argv";
