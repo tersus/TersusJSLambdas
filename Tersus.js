@@ -291,7 +291,7 @@ var fetchUser = function(){
  * `username` is the username that gets the permission type over `path`
  * `permissionType` the type of permission, a member of tersus.permissions
  */
-document.tersus.addPermission = function (path,username,permissionType,callback){
+document.tersus.addPermission = function (path,permissionType,username,callback){
     if (typeof document.tersus.username === 'undefined')
         fetchUser();
     if (typeof document.tersus.access_key === 'undefined')
