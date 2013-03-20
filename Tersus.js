@@ -243,16 +243,17 @@ document.tersus.sendMessage = function(users,toApp,message){
 // ****************************************
 
 document.tersus.writeFile = function (path,text,callback){
-    if (typeof document.tersus.username === 'undefined')
+    if (typeof document.tersus.user === 'undefined')
         fetchUser();
     if (typeof document.tersus.access_key === 'undefined')
         fetchAccessKey();
 
     $.ajax({
-          url: '/file/'+tersus.user.username+'/'+path+"/?access_key="+document.tersus.access_key
+          url: '/file/'+tersus.user.username+'/'+path
         , type: 'PUT'
         , data: { 
-            content: text 
+            content: text, 
+            access_key: document.tersus.access_key
         }
         , success: callback
     });
@@ -260,8 +261,16 @@ document.tersus.writeFile = function (path,text,callback){
 
 var FILE_ERRORS = {'NOT_FOUND' : 'NOT_FOUND'};
 
-document.tersus.getFile = function(path,callback,optional){
-    if (typeof document.tersus.username === 'undefined')
+/** 
+ * Gets a file of the logged user 
+ * 
+ * @param {String} path The file path
+ * @param {Function} callback The function to call in case the file exists, receives one parameter: the file content
+ * @param {Object} optional Optional handlers
+ * @returns {File | Array of Files} - each File has fields: `name` and `content`
+ */ 
+document.tersus.getFileContents = function(path,callback,optional){
+    if (typeof document.tersus.user === 'undefined')
         fetchUser();
     if (typeof document.tersus.access_key === 'undefined')
         fetchAccessKey();
@@ -270,11 +279,14 @@ document.tersus.getFile = function(path,callback,optional){
     req.async = false;
     req.url = '/file/'+tersus.user.username+'/'+path+'?access_key='+document.tersus.access_key;
     req.type = 'GET';
+
     req.success = function(data,status,jqXHR){callback(data);};
 
     if(optional && optional.errorCallback)
-	req.error = function(e){optional.errorCallback(FILE_ERRORS.NOT_FOUND);};
-
+	    req.error = function(e){
+            optional.errorCallback(FILE_ERRORS.NOT_FOUND);
+        };
+    
     $.ajax(req);
 }
 
@@ -292,14 +304,16 @@ var fetchUser = function(){
  * `permissionType` the type of permission, a member of tersus.permissions
  */
 document.tersus.addPermission = function (path,permissionType,username,callback){
-    if (typeof document.tersus.username === 'undefined')
+    if (typeof document.tersus.user === 'undefined')
         fetchUser();
     if (typeof document.tersus.access_key === 'undefined')
         fetchAccessKey();
-        
+    if (typeof path === 'undefined')
+        return null;
+
     $.ajax({
         url: '/permission/file/'+permissionType.uri+'/'+username+'/'+path+"/?access_key="+document.tersus.access_key
-        , type: 'PUT'        
+        , type: 'PUT'
         , success: callback
     });
 }
@@ -362,5 +376,13 @@ function getJSONSync(url_,success_){
     });
 }
 
-tersus = document.tersus
+document.tersus.getUser = function(){
+    if (typeof document.tersus.user === 'undefined'){
+        fetchUser();
+        return document.tersus.getUser()
+    }else{
+        return document.tersus.user;
+    }
+}
 
+tersus = document.tersus
