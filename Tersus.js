@@ -262,13 +262,34 @@ document.tersus.writeFile = function (path,text,callback){
 var FILE_ERRORS = {'NOT_FOUND' : 'NOT_FOUND'};
 
 /** 
- * Gets a file of the logged user 
+ * Gets file metadata of the logged user 
  * 
  * @param {String} path The file path
  * @param {Function} callback The function to call in case the file exists, receives one parameter: the file content
  * @param {Object} optional Optional handlers
  * @returns {File | Array of Files} - each File has fields: `name` and `content`
  */ 
+document.tersus.getFile = function(path,callback,optional){
+    if (typeof document.tersus.user === 'undefined')
+        fetchUser();
+    if (typeof document.tersus.access_key === 'undefined')
+        fetchAccessKey();
+
+    var req = new Object();
+    req.async = false;
+    req.url = '/file/'+tersus.user.username+'/'+path+'?access_key='+document.tersus.access_key;
+    req.type = 'GET';
+
+    req.success = function(data,status,jqXHR){callback(data);};
+
+    if(optional && optional.errorCallback)
+	    req.error = function(e){
+            optional.errorCallback(FILE_ERRORS.NOT_FOUND);
+        };
+    
+    $.ajax(req);
+}
+
 document.tersus.getFileContents = function(path,callback,optional){
     if (typeof document.tersus.user === 'undefined')
         fetchUser();
@@ -383,6 +404,14 @@ document.tersus.getUser = function(){
     }else{
         return document.tersus.user;
     }
+}
+
+/*
+ * Receives a filepath and returns the name of the file
+ */ 
+document.tersus.pathToFilename = function (filepath){
+    arr = filepath.split('/');
+    return arr[arr.length-1];
 }
 
 tersus = document.tersus
